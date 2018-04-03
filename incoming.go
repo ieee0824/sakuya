@@ -16,7 +16,7 @@ type IncomingWriter struct {
 	postMessageParameters slack.PostMessageParameters
 }
 
-func New(apiURL string, userName string) *IncomingWriter {
+func NewIncomingWriter(apiURL string, userName string) *IncomingWriter {
 	return &IncomingWriter{
 		postMessageParameters: slack.PostMessageParameters{
 			Username: defString(userName),
@@ -70,12 +70,31 @@ func (i *IncomingWriter) AddError(txt string) {
 	i.postMessageParameters.Attachments = append(i.postMessageParameters.Attachments, a)
 }
 
+func (i *IncomingWriter) AddUnknown(txt string) {
+	a := slack.Attachment{
+		Text:  txt,
+		Color: fmt.Sprintf("%02X%02X%02X", 0xaa, 0xaa, 0xaa),
+	}
+
+	i.postMessageParameters.Attachments = append(i.postMessageParameters.Attachments, a)
+
+}
+
 func (i *IncomingWriter) AddText(txt string) {
 	a := slack.Attachment{
 		Text:  txt,
 		Color: fmt.Sprintf("%02X%02X%02X", i.baseColor.R, i.baseColor.G, i.baseColor.B),
 	}
 	i.postMessageParameters.Attachments = append(i.postMessageParameters.Attachments, a)
+}
+
+func (i *IncomingWriter) AddTextAndColor(txt string, c color.RGBA) {
+	a := slack.Attachment{
+		Text:  txt,
+		Color: fmt.Sprintf("%02X%02X%02X", c.R, c.G, c.B),
+	}
+	i.postMessageParameters.Attachments = append(i.postMessageParameters.Attachments, a)
+
 }
 
 func (i *IncomingWriter) AddAttachment(a slack.Attachment) {
