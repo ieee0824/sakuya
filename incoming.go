@@ -14,6 +14,12 @@ type IncomingWriter struct {
 	apiURL                string
 	baseColor             color.RGBA
 	postMessageParameters slack.PostMessageParameters
+	text                  string
+}
+
+type PostMessageParameters struct {
+	slack.PostMessageParameters
+	Text string `json:"text"`
 }
 
 func NewIncomingWriter(apiURL string, userName string) *IncomingWriter {
@@ -41,6 +47,10 @@ func (i *IncomingWriter) ChangeChannel(channel string) {
 
 func (i *IncomingWriter) SetBaseColor(c color.RGBA) {
 	i.baseColor = c
+}
+
+func (i *IncomingWriter) AddTitle(txt string) {
+	i.text = txt
 }
 
 func (i *IncomingWriter) AddInfo(txt string) {
@@ -103,8 +113,13 @@ func (i *IncomingWriter) AddAttachment(a slack.Attachment) {
 
 func (i *IncomingWriter) Flush() error {
 	defer i.reset()
+
+	params := PostMessageParameters{}
+	params.PostMessageParameters = i.postMessageParameters
+	params.Text = i.text
+
 	buffer := new(bytes.Buffer)
-	if err := json.NewEncoder(buffer).Encode(i.postMessageParameters); err != nil {
+	if err := json.NewEncoder(buffer).Encode(params); err != nil {
 		return err
 	}
 	req, err := http.NewRequest("POST", i.apiURL, buffer)
@@ -122,15 +137,17 @@ func (i *IncomingWriter) Write(p []byte) (n int, err error) {
 		Text:  string(p),
 		Color: fmt.Sprintf("%02X%02X%02X", i.baseColor.R, i.baseColor.G, i.baseColor.B),
 	}
-	params := slack.PostMessageParameters{
-		Username:    i.postMessageParameters.Username,
-		Attachments: []slack.Attachment{attachment},
-	}
+
+	params := PostMessageParameters{}
+	params.Username = i.postMessageParameters.Username
+	params.Attachments = []slack.Attachment{attachment}
+	params.Text = i.text
 
 	buffer := new(bytes.Buffer)
 	if err := json.NewEncoder(buffer).Encode(params); err != nil {
 		return 0, err
 	}
+
 	req, err := http.NewRequest("POST", i.apiURL, buffer)
 	if err != nil {
 		return 0, err
